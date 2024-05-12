@@ -3,6 +3,9 @@ package com.wohl.posthouse.client;
 import com.wohl.posthouse.client.impl.RSASignedPostman;
 import lombok.SneakyThrows;
 
+/*
+ * @Author 吴子豪
+ */
 public interface Postman {
 
     @SneakyThrows
