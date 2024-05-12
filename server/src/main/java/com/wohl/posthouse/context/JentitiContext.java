@@ -2,6 +2,9 @@ package com.wohl.posthouse.context;
 
 import org.jentiti.context.EntityContext;
 
+/*
+ * @Author 吴子豪
+ */
 public class JentitiContext {
     private static EntityContext context;
     public static EntityContext init() {
