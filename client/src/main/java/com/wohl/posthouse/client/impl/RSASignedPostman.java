@@ -17,6 +17,9 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.security.*;
 import java.util.Base64;
 
+/*
+ * @Author 吴子豪
+ */
 @Log4j2
 public class RSASignedPostman implements Postman {
     private EventLoopGroup eventExecutors;
