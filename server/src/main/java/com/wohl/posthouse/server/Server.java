@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 @Log4j2
 @Data
 @NoArgsConstructor
+// 服务器启动类
 public class Server {
     public static NioEventLoopGroup eventExecutors = new NioEventLoopGroup();
     public static ServerBootstrap serverBootstrap;
