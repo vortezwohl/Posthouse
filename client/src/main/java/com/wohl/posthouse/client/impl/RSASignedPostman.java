@@ -16,6 +16,13 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.security.*;
 import java.util.Base64;
+import java.util.concurrent.CountDownLatch;
+
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
+
+import javax.net.ssl.SSLException;
 
 /*
  * @Author 吴子豪
@@ -30,7 +37,7 @@ public class RSASignedPostman implements Postman {
     private PublicKey publicKey;
     private PrivateKey privateKey;
     private Signature signer;
-
+    private SslContext sslContext;
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
@@ -45,6 +52,11 @@ public class RSASignedPostman implements Postman {
         eventExecutors = new NioEventLoopGroup(2);
         serverHost = host;
         serverPort = port;
+        try {
+            sslContext = SslContextBuilder.forClient().build();
+        } catch (SSLException e) {
+            throw new RuntimeException(e);
+        }
         bootstrap = new Bootstrap()
                 .group(eventExecutors)
                 .option(ChannelOption.TCP_NODELAY, true)
@@ -53,6 +65,8 @@ public class RSASignedPostman implements Postman {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
+                        // 在Pipeline的最前面添加SSL处理器
+                        pipeline.addFirst("ssl", sslContext.newHandler(ch.alloc(), serverHost, serverPort));
                         pipeline.addLast(new StringDecoder(CharsetUtil.UTF_8));
                         pipeline.addLast(new StringEncoder(CharsetUtil.UTF_8));
                         pipeline.addLast(new ChannelInboundHandlerAdapter() {
@@ -103,27 +117,34 @@ public class RSASignedPostman implements Postman {
         eventExecutors.shutdownGracefully().sync();
     }
 
+
+
     @Override
     public boolean cst(String k, String v, long ttl) throws InterruptedException {
         response = null;
+        CountDownLatch latch = new CountDownLatch(1); // 创建一个CountDownLatch实例
         ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
-                System.currentTimeMillis() + Delimiter.get() +
+                        System.currentTimeMillis() + Delimiter.get() +
                         ttl + Delimiter.get() +
                         "CST" + Delimiter.get() +
                         k + Delimiter.get() +
                         v +
                         Delimiter.getBodyEnd()
-        );
+        ).addListener((ChannelFutureListener) channelFuture -> {
+            latch.countDown(); // 在消息发送完成后调用countDown
+        });
+        latch.await(); // 等待直到countDown方法被调用
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return response != null && response.getValue().equals(":)"); // 检查response是否不为null并且值为":)"
     }
 
     @Override
     public boolean cst(String k, String v) throws InterruptedException {
-        return cst(k,v,-1);
+        return cst(k, v, -1);
     }
+
 
     @Override
     public boolean cha(String k, long ttl) throws InterruptedException {
@@ -273,25 +294,31 @@ public class RSASignedPostman implements Postman {
     }
 
     @Override
+
     public boolean exp(String k, long ttl) throws InterruptedException {
         response = null;
+        CountDownLatch latch = new CountDownLatch(1); // 创建一个CountDownLatch实例
         ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
-                System.currentTimeMillis() + Delimiter.get() +
+                        System.currentTimeMillis() + Delimiter.get() +
                         ttl + Delimiter.get() +
                         "EXP" + Delimiter.get() +
                         k +
                         Delimiter.getBodyEnd()
-        );
+        ).addListener((ChannelFutureListener) channelFuture -> {
+            latch.countDown(); // 在消息发送完成后调用countDown
+        });
+        latch.await(); // 等待直到countDown方法被调用
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return response != null && response.getValue().equals(":)"); // 检查response是否不为null并且值为":)"
     }
 
     @Override
     public boolean exp(String k) throws InterruptedException {
         return exp(k,0);
     }
+
 
     @Override
     public boolean dhai(String k, String field) throws InterruptedException {
@@ -345,25 +372,31 @@ public class RSASignedPostman implements Postman {
     }
 
     @Override
+
     public boolean dk(String k) throws InterruptedException {
         response = null;
+        CountDownLatch latch = new CountDownLatch(1); // 创建一个CountDownLatch实例
         ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
-                System.currentTimeMillis() + Delimiter.get() +
+                        System.currentTimeMillis() + Delimiter.get() +
                         -1 + Delimiter.get() +
                         "DK" + Delimiter.get() +
                         k +
                         Delimiter.getBodyEnd()
-        );
+        ).addListener((ChannelFutureListener) channelFuture -> {
+            latch.countDown(); // 在消息发送完成后调用countDown
+        });
+        latch.await(); // 等待直到countDown方法被调用
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return response != null && response.getValue().equals(":)"); // 检查response是否不为null并且值为":)"
     }
 
     @Override
     public boolean remove(String k) throws InterruptedException {
         return dk(k);
     }
+
 
     @Override
     public String rks() throws InterruptedException {
@@ -396,26 +429,33 @@ public class RSASignedPostman implements Postman {
     }
 
     @Override
+
     public String rk(String k) throws InterruptedException {
         response = null;
+        CountDownLatch latch = new CountDownLatch(1); // 创建一个CountDownLatch实例
         ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
-                System.currentTimeMillis() + Delimiter.get() +
+                        System.currentTimeMillis() + Delimiter.get() +
                         -1 + Delimiter.get() +
                         "RK" + Delimiter.get() +
                         k +
                         Delimiter.getBodyEnd()
-        );
+        ).addListener((ChannelFutureListener) channelFuture -> {
+            latch.countDown(); // 在消息发送完成后调用countDown
+        });
+        latch.await(); // 等待直到countDown方法被调用
         future.channel().closeFuture().sync();
-        if(!response.getValue().equals(":("))
+        if (response != null && !response.getValue().equals(":(")) {
             return response.getValue();
-        else
+        } else {
             return null;
+        }
     }
 
     @Override
     public String get(String k) throws InterruptedException {
         return rk(k);
     }
+
 }
