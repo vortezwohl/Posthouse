@@ -12,6 +12,7 @@ public enum BasicDataType {
         this.type = type;
     }
 
+    //字符串转换为相应的枚举实例
     public static BasicDataType parse(String string) {
         switch (string) {
             case "STRING":

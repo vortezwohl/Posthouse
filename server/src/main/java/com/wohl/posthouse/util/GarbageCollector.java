@@ -2,7 +2,7 @@ package com.wohl.posthouse.util;
 
 import com.wohl.posthouse.store.RemoteDictStore;
 import lombok.extern.log4j.Log4j2;
-
+//清理过期的键值对条目
 @Log4j2
 public class GarbageCollector {
     public static void flush() {
