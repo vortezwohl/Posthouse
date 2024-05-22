@@ -18,8 +18,6 @@ import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 
-import java.util.LinkedList;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -30,12 +28,13 @@ import java.util.concurrent.TimeUnit;
 @NoArgsConstructor
 // 服务器启动类
 public class Server {
-    public static NioEventLoopGroup eventExecutors = new NioEventLoopGroup();
-    public static ServerBootstrap serverBootstrap;
+    private static NioEventLoopGroup EVENT_EXECUTORS = new NioEventLoopGroup();
+    private static ServerBootstrap SERVER_BOOTSTRAP;
+
     @SneakyThrows
-    public static ServerBootstrap init() {
-        serverBootstrap = new ServerBootstrap()
-                .group(eventExecutors)
+    private static ServerBootstrap init() {
+        SERVER_BOOTSTRAP = new ServerBootstrap()
+                .group(EVENT_EXECUTORS)
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
@@ -56,18 +55,16 @@ public class Server {
                         pipeline.addLast(new RemoteDictOperationHandler());
                     }
                 });
-        return serverBootstrap;
+
+        return SERVER_BOOTSTRAP;
     }
 
     public static ChannelFuture run(int port) throws InterruptedException {
-        return serverBootstrap.bind(port).sync();
+        runDaemon();
+        return init().bind(port).sync();
     }
 
-    public static LinkedList<ScheduledFuture> runDaemon() {
-        LinkedList<ScheduledFuture> scheduledFutures = new LinkedList<>();
-        scheduledFutures.addLast(
-                eventExecutors.scheduleAtFixedRate(GarbageCollector::flush, 0,16, TimeUnit.MILLISECONDS)
-        );
-        return scheduledFutures;
+    private static void runDaemon() {
+        EVENT_EXECUTORS.scheduleAtFixedRate(GarbageCollector::flush, 0, 16, TimeUnit.MILLISECONDS);
     }
 }
