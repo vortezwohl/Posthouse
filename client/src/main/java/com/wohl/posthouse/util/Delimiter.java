@@ -22,4 +22,20 @@ public class Delimiter {
     public static String getDigitalSignatureEnd() {
         return "</DS>";
     }
+
+    public static String getPostmanRegisterStart() {
+        return "<BONJOUR>";
+    }
+
+    public static String getPostmanRegisterEnd() {
+        return "</BONJOUR>";
+    }
+
+    public static String getPostmanLogoffStart() {
+        return "<SALUT>";
+    }
+
+    public static String getPostmanLogoffEnd() {
+        return "</SALUT>";
+    }
 }

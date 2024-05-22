@@ -1,6 +1,7 @@
 package com.wohl.posthouse.handler;
 
 import com.wohl.posthouse.context.JentitiContext;
+import com.wohl.posthouse.store.PostmanRegistrationStore;
 import com.wohl.posthouse.util.Delimiter;
 import com.wohl.posthouse.util.intf.SignatureVerifier;
 import io.netty.channel.ChannelHandlerContext;
@@ -15,9 +16,12 @@ public class SignatureVerificationHandler extends ChannelInboundHandlerAdapter {
 
         String msgStr = (String) msg;
         String[] digitalSignature = msgStr.split(Delimiter.getDigitalSignatureStart(),2)[1].split(Delimiter.getDigitalSignatureEnd(),2)[0].split(Delimiter.get(),2);
-        String publicKey = digitalSignature[0];
+        String postmanId = digitalSignature[0];
         String signature = digitalSignature[1];
         String msgBody = msgStr.split(Delimiter.getBodyStart(),2)[1].split(Delimiter.getBodyEnd(),2)[0];
+
+        String publicKey = PostmanRegistrationStore.publicKeyMap.get(postmanId);
+
         if(signatureVerifier.verify(msgBody, signature, publicKey)){
             log.info("Signature succeeded to match");
             ctx.fireChannelRead(msg);

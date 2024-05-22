@@ -21,7 +21,7 @@ public class ClientMain {
         System.out.println("First request time: "+(end - start) / 1000.0 + "s");
 
         LinkedList<Double> linkedList = new LinkedList<>();
-        for(int i=0; i< 100; i++) {
+        for (int i = 0; i < 5; i++) {
             start = System.currentTimeMillis();
             postman.cst("str1", "str1");
             res = postman.get("str1");
