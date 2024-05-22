@@ -1,6 +1,7 @@
 package com.wohl.posthouse.client.impl;
 
 import com.wohl.posthouse.client.Postman;
+import com.wohl.posthouse.client.exception.PostmanRegistrationException;
 import com.wohl.posthouse.resp.Response;
 import com.wohl.posthouse.util.Delimiter;
 import io.netty.bootstrap.Bootstrap;
@@ -17,36 +18,42 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.security.*;
 import java.util.Base64;
 
-/*
+/**
  * @Author 吴子豪
  */
 @Log4j2
 public class RSASignedPostman implements Postman {
-    private EventLoopGroup eventExecutors;
-    private String serverHost;
-    private int serverPort;
-    private Bootstrap bootstrap;
-    private Response response;
-    private PublicKey publicKey;
-    private PrivateKey privateKey;
-    private Signature signer;
+
+    private EventLoopGroup EVENT_EXECUTORS;
+    private String SERVER_HOST;
+    private int SERVER_PORT;
+    private Bootstrap BOOTSTRAP;
+    private Response RESPONSE;
+    private PublicKey PUBLIC_KEY;
+    private PrivateKey PRIVATE_KEY;
+    private Signature SIGNER;
+    private String POSTMAN_ID;
 
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
 
-    public RSASignedPostman(String host, int port) throws NoSuchProviderException, NoSuchAlgorithmException {
-
+    public RSASignedPostman(String host, int port) throws
+            NoSuchProviderException,
+            NoSuchAlgorithmException,
+            InterruptedException,
+            InvalidKeyException,
+            SignatureException {
         KeyPair keyPair = generateRSAKeyPair();
-        publicKey = keyPair.getPublic();
-        privateKey = keyPair.getPrivate();
-        signer = Signature.getInstance("RSA", "BC");
+        PUBLIC_KEY = keyPair.getPublic();
+        PRIVATE_KEY = keyPair.getPrivate();
+        SIGNER = Signature.getInstance("RSA", "BC");
 
-        eventExecutors = new NioEventLoopGroup(2);
-        serverHost = host;
-        serverPort = port;
-        bootstrap = new Bootstrap()
-                .group(eventExecutors)
+        EVENT_EXECUTORS = new NioEventLoopGroup(2);
+        SERVER_HOST = host;
+        SERVER_PORT = port;
+        BOOTSTRAP = new Bootstrap()
+                .group(EVENT_EXECUTORS)
                 .option(ChannelOption.TCP_NODELAY, true)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<SocketChannel>() {
@@ -58,7 +65,7 @@ public class RSASignedPostman implements Postman {
                         pipeline.addLast(new ChannelInboundHandlerAdapter() {
                             @Override
                             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                                response = new Response((String) msg);
+                                RESPONSE = new Response((String) msg);
                                 ctx.channel().close();
                             }
                             @Override
@@ -66,23 +73,42 @@ public class RSASignedPostman implements Postman {
                                 log.debug(cause.getStackTrace());
                             }
                         });
-                        // digital signature for request body (<BODY></BODY>)
                         pipeline.addLast(new ChannelOutboundHandlerAdapter(){
                             @Override
                             public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
                                 String msgStr = (String) msg;
-                                String msgBody = msgStr.split(Delimiter.getBodyStart(),2)[1].split(Delimiter.getBodyEnd(),2)[0];
-                                String signature = sign(msgBody, privateKey);
-                                String base64PublicKey = Base64.getEncoder().encodeToString(publicKey.getEncoded());
-                                msg = Delimiter.getDigitalSignatureStart() + base64PublicKey + Delimiter.get() + signature + Delimiter.getDigitalSignatureEnd() + msg;
-                                ctx.write(msg, promise);
+                                // digital signature for request body (<BODY></BODY>)
+                                if (msgStr.contains(Delimiter.getBodyStart()) || msgStr.contains(Delimiter.getBodyEnd())) {
+                                    String msgBody = msgStr.split(Delimiter.getBodyStart(), 2)[1].split(Delimiter.getBodyEnd(), 2)[0];
+                                    String signature = sign(msgBody);
+                                    // POSTMAN_ID is mapped to a specific rsa public key
+                                    String digitalSignatureHeader =
+                                            Delimiter.getDigitalSignatureStart() +
+                                                    POSTMAN_ID + Delimiter.get() +
+                                                    signature +
+                                                    Delimiter.getDigitalSignatureEnd();
+                                    // add header to msg string
+                                    msgStr = digitalSignatureHeader + msgStr;
+                                }
+                                ctx.write(msgStr, promise);
                             }
                         });
                     }
                 });
+
+        // if registration failed, fire the postman (drop the connection) due to access control policy
+        if (!generatePostmanIdWithRSASignature()) {
+            fire();
+            throw new PostmanRegistrationException("Failed to register postman in Posthouse.");
+        }
     }
 
-    public RSASignedPostman(String host) throws NoSuchProviderException, NoSuchAlgorithmException {
+    public RSASignedPostman(String host) throws
+            NoSuchProviderException,
+            NoSuchAlgorithmException,
+            InterruptedException,
+            InvalidKeyException,
+            SignatureException {
         this(host,2386);
     }
 
@@ -92,21 +118,51 @@ public class RSASignedPostman implements Postman {
         return keyGen.generateKeyPair();
     }
 
-    private String sign(String msg,PrivateKey privateKey) throws SignatureException, InvalidKeyException {
-        signer.initSign(privateKey);
-        signer.update(msg.getBytes(CharsetUtil.UTF_8));
-        return Base64.getEncoder().encodeToString(signer.sign());
+    private String sign(String msg) throws SignatureException, InvalidKeyException {
+        SIGNER.initSign(PRIVATE_KEY);
+        SIGNER.update(msg.getBytes(CharsetUtil.UTF_8));
+        return Base64.getEncoder().encodeToString(SIGNER.sign());
+    }
+
+    private boolean generatePostmanIdWithRSASignature() throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, InterruptedException {
+        // generate POSTMAN_ID
+        SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+        long timeStamp = System.currentTimeMillis();
+        int randInt = secureRandom.nextInt();
+        SIGNER.initSign(PRIVATE_KEY);
+        SIGNER.update((String.valueOf(timeStamp) + randInt).getBytes(CharsetUtil.UTF_8));
+        POSTMAN_ID = Base64.getEncoder().encodeToString(SIGNER.sign());
+
+        // sync with server
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
+        future.channel().writeAndFlush(
+                Delimiter.getPostmanRegisterStart() +
+                        POSTMAN_ID + Delimiter.get() + Base64.getEncoder().encodeToString(PUBLIC_KEY.getEncoded()) +
+                        Delimiter.getPostmanRegisterEnd()
+        );
+        future.channel().closeFuture().sync();
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
     public void fire() throws InterruptedException {
-        eventExecutors.shutdownGracefully().sync();
+        // fire the postman in Posthouse
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
+        future.channel().writeAndFlush(
+                Delimiter.getPostmanLogoffStart() +
+                        POSTMAN_ID + Delimiter.getPostmanLogoffEnd()
+        );
+        future.channel().closeFuture().sync();
+        if (RESPONSE.getValue().equals(":)"))
+            EVENT_EXECUTORS.shutdownGracefully().sync();
     }
 
     @Override
     public boolean cst(String k, String v, long ttl) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -117,7 +173,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -127,8 +183,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public boolean cha(String k, long ttl) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart()+
                 System.currentTimeMillis() + Delimiter.get() +
@@ -138,7 +194,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -148,8 +204,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public boolean chai(String k, String field, String value, long ttl) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -161,7 +217,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -171,8 +227,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public boolean cde(String k, long ttl) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -182,7 +238,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -192,8 +248,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public boolean cdei(String k, String v, long ttl) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -204,7 +260,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -214,8 +270,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public boolean cse(String k, long ttl) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -225,7 +281,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -235,8 +291,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public boolean csei(String k, String v, long ttl) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -247,7 +303,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -257,8 +313,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public boolean mst(String k, String v) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -269,13 +325,13 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
     public boolean exp(String k, long ttl) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -285,7 +341,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -295,8 +351,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public boolean dhai(String k, String field) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -307,13 +363,13 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
     public boolean ddei(String k, String v) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -324,13 +380,13 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
     public boolean dsei(String k, String v) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -341,13 +397,13 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
     public boolean dk(String k) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -357,7 +413,7 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue().equals(":)");
+        return RESPONSE.getValue().equals(":)");
     }
 
     @Override
@@ -367,8 +423,8 @@ public class RSASignedPostman implements Postman {
 
     @Override
     public String rks() throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -377,13 +433,13 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue();
+        return RESPONSE.getValue();
     }
 
     @Override
     public String rkes() throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -392,13 +448,13 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        return response.getValue();
+        return RESPONSE.getValue();
     }
 
     @Override
     public String rk(String k) throws InterruptedException {
-        response = null;
-        ChannelFuture future = bootstrap.connect(serverHost, serverPort).sync();
+        RESPONSE = null;
+        ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
         future.channel().writeAndFlush(
                 Delimiter.getBodyStart() +
                 System.currentTimeMillis() + Delimiter.get() +
@@ -408,8 +464,8 @@ public class RSASignedPostman implements Postman {
                         Delimiter.getBodyEnd()
         );
         future.channel().closeFuture().sync();
-        if(!response.getValue().equals(":("))
-            return response.getValue();
+        if (!RESPONSE.getValue().equals(":("))
+            return RESPONSE.getValue();
         else
             return null;
     }

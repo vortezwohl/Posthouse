@@ -1,5 +1,6 @@
 package com.wohl.posthouse.server;
 
+import com.wohl.posthouse.handler.PostmanRegistrationHandler;
 import com.wohl.posthouse.handler.RemoteDictOperationHandler;
 import com.wohl.posthouse.handler.RemoteDictReadHandler;
 import com.wohl.posthouse.handler.SignatureVerificationHandler;
@@ -21,7 +22,7 @@ import java.util.LinkedList;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-/*
+/**
  * @Author 吴子豪
  */
 @Log4j2
@@ -49,6 +50,7 @@ public class Server {
                                 ctx.fireChannelRead(msg);
                             }
                         });
+                        pipeline.addLast(new PostmanRegistrationHandler());
                         pipeline.addLast(new SignatureVerificationHandler());
                         pipeline.addLast(new RemoteDictReadHandler());
                         pipeline.addLast(new RemoteDictOperationHandler());
