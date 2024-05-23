@@ -10,6 +10,21 @@ Posthouse is a NoSQL database and an efficient cache for softwares which require
 - Data persistence
 - Eazy to use
 
+## Posthouse configuration
+
+```yaml
+# posthouse.yaml
+server:
+  port: 2386
+  persistence:
+    enable: true
+    retain: true
+```
+
+# Postman
+
+Postman is a implementation of client for Posthouse
+
 ## Quick guide
 
 ```
