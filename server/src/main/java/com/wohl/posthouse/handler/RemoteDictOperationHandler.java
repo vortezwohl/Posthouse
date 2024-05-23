@@ -1,7 +1,11 @@
 package com.wohl.posthouse.handler;
 
-import com.wohl.posthouse.store.RemoteDictStore;
 import com.wohl.posthouse.context.JentitiContext;
+import com.wohl.posthouse.store.PosthouseConfigStore;
+import com.wohl.posthouse.store.RemoteDictStore;
+import com.wohl.posthouse.util.Delimiter;
+import com.wohl.posthouse.util.impl.LocalDataPersistenceProcessor;
+import com.wohl.posthouse.util.intf.DataPersistenceProcessor;
 import com.wohl.posthouse.util.intf.RemoteDictInstructionAnalyser;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -13,6 +17,12 @@ public class RemoteDictOperationHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         String msgStr = (String) msg;
         RemoteDictInstructionAnalyser remoteDictInstructionAnalyser = (RemoteDictInstructionAnalyser) JentitiContext.ctx().get("remoteDictInstructionAnalyser");
+        DataPersistenceProcessor localDataPersistenceProcessor = (DataPersistenceProcessor) JentitiContext.ctx().get(LocalDataPersistenceProcessor.class);
+
+        // data persistence if enabled
+        if (PosthouseConfigStore.POSTHOUSE_CONFIG.getServer().getPersistence().isEnable())
+            localDataPersistenceProcessor.append(Delimiter.getBodyStart() + msgStr.split(Delimiter.getBodyStart(), 2)[1]);
+
         if(remoteDictInstructionAnalyser.exec(msgStr)) {
             ctx.writeAndFlush(":)");
             log.info("Response=:) OK");
