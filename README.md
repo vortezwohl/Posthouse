@@ -8,7 +8,7 @@ Posthouse is a NoSQL database and an efficient cache for softwares which require
 - High availability
 - Data integrity protection
 - Data persistence
-- Eazy to use
+- Easy to use
 
 ## Posthouse configuration
 
