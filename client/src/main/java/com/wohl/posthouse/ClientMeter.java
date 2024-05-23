@@ -4,7 +4,7 @@ import com.wohl.posthouse.client.Postman;
 
 import java.util.LinkedList;
 
-public class ClientMain {
+public class ClientMeter {
     public static void main(String[] args) throws InterruptedException {
 
         long beforeConnect = System.currentTimeMillis();
@@ -16,12 +16,11 @@ public class ClientMain {
         postman.cst("str1", "str1");
         String res = postman.get("str1");
         postman.exp("str1");
-        postman.remove("str1");
         long end = System.currentTimeMillis();
         System.out.println("First request time: "+(end - start) / 1000.0 + "s");
 
         LinkedList<Double> linkedList = new LinkedList<>();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 3; i++) {
             start = System.currentTimeMillis();
             postman.cst("str1", "str1");
             res = postman.get("str1");
@@ -36,7 +35,7 @@ public class ClientMain {
         }
         System.out.println("Total time: "+ sum + "s");
         System.out.println("Request sent:" + linkedList.size());
-        System.out.println("Avl request time: "+sum/(linkedList.size()+0.0));
+        System.out.println("Avl request time: " + sum / (linkedList.size() + 0.0) + "s");
 
         long beforeDisconnect = System.currentTimeMillis();
         postman.fire();
