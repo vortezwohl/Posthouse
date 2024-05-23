@@ -24,6 +24,7 @@ public class PostmanRegistrationHandler extends ChannelInboundHandlerAdapter {
             PostmanRegistrationStore.publicKeyMap.put(postmanId, publicKey);
             if (PostmanRegistrationStore.exist(postmanId)) {
                 log.info("Postman " + postmanId + " hired");
+                log.debug("Postmen=" + PostmanRegistrationStore.keySet);
                 ctx.channel().writeAndFlush(":)");
             } else
                 ctx.channel().writeAndFlush(":(");
@@ -34,6 +35,7 @@ public class PostmanRegistrationHandler extends ChannelInboundHandlerAdapter {
             PostmanRegistrationStore.publicKeyMap.remove(postmanId);
             if (!PostmanRegistrationStore.exist(postmanId)) {
                 log.info("Postman " + postmanId + " fired");
+                log.debug("Postmen=" + PostmanRegistrationStore.keySet);
                 ctx.channel().writeAndFlush(":)");
             } else
                 ctx.channel().writeAndFlush(":(");
