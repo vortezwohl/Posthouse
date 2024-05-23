@@ -36,42 +36,22 @@ rk: read value of a key
 get: read value of a key
 ```
 
+## Example
 ```java
-public interface Postman {
-    @SneakyThrows
-    public static Postman hire(String serverHost, int serverPort) {
-        return new RSASignedPostman(serverHost, serverPort);
+import com.wohl.posthouse.client.Postman;
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Postman postman = Postman.hire("127.0.0.1");
+        postman.cst("key", "hello world");
+        String res = postman.get("key");
+        System.out.println(res);
+        postman.remove("key");
+        postman.fire();
     }
-    @SneakyThrows
-    public static Postman hire(String serverHost) {
-        return new RSASignedPostman(serverHost);
-    }
-    void fire() throws InterruptedException;
-    boolean cst(String k, String v, long ttl) throws InterruptedException;
-    boolean cst(String k, String v) throws InterruptedException;
-    boolean cha(String k, long ttl) throws InterruptedException;
-    boolean cha(String k) throws InterruptedException;
-    boolean chai(String k, String field, String value, long ttl) throws InterruptedException;
-    boolean chai(String k, String field, String value) throws InterruptedException;
-    boolean cde(String k, long ttl) throws InterruptedException;
-    boolean cde(String k) throws InterruptedException;
-    boolean cdei(String k, String v, long ttl) throws InterruptedException;
-    boolean cdei(String k, String v) throws InterruptedException;
-    boolean cse(String k, long ttl) throws InterruptedException;
-    boolean cse(String k) throws InterruptedException;
-    boolean csei(String k, String v, long ttl) throws InterruptedException;
-    boolean csei(String k, String v) throws InterruptedException;
-    boolean mst(String k, String v) throws InterruptedException;
-    boolean exp(String k, long ttl) throws InterruptedException;
-    boolean exp(String k) throws InterruptedException;
-    boolean dhai(String k, String field) throws InterruptedException;
-    boolean ddei(String k, String v) throws InterruptedException;
-    boolean dsei(String k, String v) throws InterruptedException;
-    boolean dk(String k) throws InterruptedException;
-    boolean remove(String k) throws InterruptedException;
-    String rks() throws InterruptedException;
-    String rkes() throws InterruptedException;
-    String rk(String k) throws InterruptedException;
-    String get(String k) throws InterruptedException;
 }
+```
+
+```
+hello world
 ```
