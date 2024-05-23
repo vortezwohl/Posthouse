@@ -32,7 +32,9 @@ public class Main {
         JentitiContext.init();
 
         // load configurations
-        Path config = Paths.get(System.getProperty("user.dir") + "\\posthouse.yml");
+        Path config = Paths.get(System.getProperty("user.dir") + "\\posthouse.yaml");
+        if (!Files.exists(config))
+            config = Paths.get(System.getProperty("user.dir") + "\\posthouse.yml");
         if (!Files.exists(config))
             config = Paths.get(Objects.requireNonNull(Main.class.getClassLoader().getResource("posthouse.yml")).toURI());
         Map<String, Object> posthouseConfigMap = yaml.load(new FileInputStream(config.toFile()));
