@@ -38,14 +38,11 @@ public interface Postman {
      static Postman hire(String serverHost, int serverPort) {
         return new RSASignedPostman(serverHost, serverPort);
     }
-
     @SneakyThrows
      static Postman hire(String serverHost) {
         return new RSASignedPostman(serverHost);
     }
-
     void fire() throws InterruptedException;
-
     boolean createString(String k, String v, long ttl) throws InterruptedException;
     boolean createString(String k, String v) throws InterruptedException;
     boolean createMap(String k, long ttl) throws InterruptedException;
@@ -60,17 +57,14 @@ public interface Postman {
     boolean createSet(String k) throws InterruptedException;
     boolean createSetItem(String k, String v, long ttl) throws InterruptedException;
     boolean createSetItem(String k, String v) throws InterruptedException;
-
     boolean modifyString(String k, String v) throws InterruptedException;
     boolean expire(String k, long ttl) throws InterruptedException;
     boolean expire(String k) throws InterruptedException;
-
     boolean removeMapEntry(String k, String field) throws InterruptedException;
     boolean removeDequeItemAtFirstOccurrence(String k, String v) throws InterruptedException;
     boolean removeSetItem(String k, String v) throws InterruptedException;
     boolean removeKey(String k) throws InterruptedException;
     boolean remove(String k) throws InterruptedException;
-
     String getKeySet() throws InterruptedException;
     String getKeyExpirationSet() throws InterruptedException;
     String readKey(String k) throws InterruptedException;
