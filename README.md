@@ -35,40 +35,46 @@ import wohl.posthouse.client.impl.RSASignedPostman;
 
 public interface Postman {
     @SneakyThrows
-    public static Postman hire(String serverHost, int serverPort) {
+     static Postman hire(String serverHost, int serverPort) {
         return new RSASignedPostman(serverHost, serverPort);
     }
+
     @SneakyThrows
-    public static Postman hire(String serverHost) {
+     static Postman hire(String serverHost) {
         return new RSASignedPostman(serverHost);
     }
-    public abstract void fire() throws InterruptedException;
-    public abstract boolean createString(String k, String v, long ttl) throws InterruptedException;
-    public abstract boolean createString(String k, String v) throws InterruptedException;
-    public abstract boolean createMap(String k, long ttl) throws InterruptedException;
-    public abstract boolean createMap(String k) throws InterruptedException;
-    public abstract boolean createMapEntry(String k, String field, String value, long ttl) throws InterruptedException;
-    public abstract boolean createMapEntry(String k, String field, String value) throws InterruptedException;
-    public abstract boolean createDeque(String k, long ttl) throws InterruptedException;
-    public abstract boolean createDeque(String k) throws InterruptedException;
-    public abstract boolean createDequeItem(String k, String v, long ttl) throws InterruptedException;
-    public abstract boolean createDequeItem(String k, String v) throws InterruptedException;
-    public abstract boolean createSet(String k, long ttl) throws InterruptedException;
-    public abstract boolean createSet(String k) throws InterruptedException;
-    public abstract boolean createSetItem(String k, String v, long ttl) throws InterruptedException;
-    public abstract boolean createSetItem(String k, String v) throws InterruptedException;
-    public abstract boolean modifyString(String k, String v) throws InterruptedException;
-    public abstract boolean expire(String k, long ttl) throws InterruptedException;
-    public abstract boolean expire(String k) throws InterruptedException;
-    public abstract boolean removeMapEntry(String k, String field) throws InterruptedException;
-    public abstract boolean removeDequeItemAtFirstOccurrence(String k, String v) throws InterruptedException;
-    public abstract boolean removeSetItem(String k, String v) throws InterruptedException;
-    public abstract boolean removeKey(String k) throws InterruptedException;
-    public abstract boolean remove(String k) throws InterruptedException;
-    public abstract String getKeySet() throws InterruptedException;
-    public abstract String getKeyExpirationSet() throws InterruptedException;
-    public abstract String readKey(String k) throws InterruptedException;
-    public abstract String get(String k) throws InterruptedException;
+
+    void fire() throws InterruptedException;
+
+    boolean createString(String k, String v, long ttl) throws InterruptedException;
+    boolean createString(String k, String v) throws InterruptedException;
+    boolean createMap(String k, long ttl) throws InterruptedException;
+    boolean createMap(String k) throws InterruptedException;
+    boolean createMapEntry(String k, String field, String value, long ttl) throws InterruptedException;
+    boolean createMapEntry(String k, String field, String value) throws InterruptedException;
+    boolean createDeque(String k, long ttl) throws InterruptedException;
+    boolean createDeque(String k) throws InterruptedException;
+    boolean createDequeItem(String k, String v, long ttl) throws InterruptedException;
+    boolean createDequeItem(String k, String v) throws InterruptedException;
+    boolean createSet(String k, long ttl) throws InterruptedException;
+    boolean createSet(String k) throws InterruptedException;
+    boolean createSetItem(String k, String v, long ttl) throws InterruptedException;
+    boolean createSetItem(String k, String v) throws InterruptedException;
+
+    boolean modifyString(String k, String v) throws InterruptedException;
+    boolean expire(String k, long ttl) throws InterruptedException;
+    boolean expire(String k) throws InterruptedException;
+
+    boolean removeMapEntry(String k, String field) throws InterruptedException;
+    boolean removeDequeItemAtFirstOccurrence(String k, String v) throws InterruptedException;
+    boolean removeSetItem(String k, String v) throws InterruptedException;
+    boolean removeKey(String k) throws InterruptedException;
+    boolean remove(String k) throws InterruptedException;
+
+    String getKeySet() throws InterruptedException;
+    String getKeyExpirationSet() throws InterruptedException;
+    String readKey(String k) throws InterruptedException;
+    String get(String k) throws InterruptedException;
 }
 ```
 
