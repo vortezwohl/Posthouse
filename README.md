@@ -102,7 +102,7 @@ get: read value of a key
 
 ## Example
 ```java
-import com.wohl.posthouse.client.Postman;
+import wohl.posthouse.client.Postman;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
