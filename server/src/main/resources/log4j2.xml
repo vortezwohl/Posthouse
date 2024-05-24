@@ -31,6 +31,6 @@
         <!--第三方的软件日志级别 -->
         <logger name="io.netty" level="info" additivity="true"></logger>
         <logger name="org.apache.logging.log4j" level="info" additivity="true"></logger>
-        <logger name="com.wohl" level="info" additivity="true"></logger>
+        <logger name="wohl" level="info" additivity="true"></logger>
     </Loggers>
 </Configuration>

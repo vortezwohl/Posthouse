@@ -1,8 +1,8 @@
-server:
+posthouse:
   port: 2386
   persistence:
     enable: true
-    retain: true
+    retain: false
 
 
 #  role: headquarter

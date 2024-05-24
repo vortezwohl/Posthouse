@@ -31,7 +31,7 @@ Postman is a implementation of client for Posthouse
 package wohl.posthouse.client;
 
 import lombok.SneakyThrows;
-import wohl.posthouse.client.impl.RSASignedPostman;
+import SecurePostman;
 
 public interface Postman {
     @SneakyThrows
@@ -104,7 +104,7 @@ get: read value of a key
 
 ## Example
 ```java
-import wohl.posthouse.client.Postman;
+import Postman;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
