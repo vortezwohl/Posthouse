@@ -84,6 +84,9 @@ cdei: create item in deque
 cse: create set
 csei: create item in set
 mst: modify string
+mha: update hash map
+mde: update deque
+mse: update set
 exp: set expiration of a kay
 dhai: remove an entry in hash map
 ddei: remove an item in deque
