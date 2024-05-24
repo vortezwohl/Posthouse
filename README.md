@@ -33,9 +33,6 @@ package wohl.posthouse.client;
 import lombok.SneakyThrows;
 import wohl.posthouse.client.impl.RSASignedPostman;
 
-/**
- * @Author 吴子豪
- */
 public interface Postman {
     @SneakyThrows
     public static Postman hire(String serverHost, int serverPort) {
@@ -73,7 +70,6 @@ public interface Postman {
     public abstract String readKey(String k) throws InterruptedException;
     public abstract String get(String k) throws InterruptedException;
 }
-
 ```
 
 ```
