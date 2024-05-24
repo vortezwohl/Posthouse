@@ -107,7 +107,7 @@ import com.wohl.posthouse.client.Postman;
 public class Main {
     public static void main(String[] args) throws InterruptedException {
         Postman postman = Postman.hire("127.0.0.1");
-        postman.cst("key", "hello world");
+        postman.createString("key", "hello world");
         String res = postman.get("key");
         System.out.println(res);
         postman.remove("key");
