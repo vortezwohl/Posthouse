@@ -27,8 +27,57 @@ Postman is a implementation of client for Posthouse
 
 ## Quick guide
 
+```java
+package wohl.posthouse.client;
+
+import lombok.SneakyThrows;
+import wohl.posthouse.client.impl.RSASignedPostman;
+
+/**
+ * @Author 吴子豪
+ */
+public interface Postman {
+    @SneakyThrows
+    public static Postman hire(String serverHost, int serverPort) {
+        return new RSASignedPostman(serverHost, serverPort);
+    }
+    @SneakyThrows
+    public static Postman hire(String serverHost) {
+        return new RSASignedPostman(serverHost);
+    }
+    public abstract void fire() throws InterruptedException;
+    public abstract boolean createString(String k, String v, long ttl) throws InterruptedException;
+    public abstract boolean createString(String k, String v) throws InterruptedException;
+    public abstract boolean createMap(String k, long ttl) throws InterruptedException;
+    public abstract boolean createMap(String k) throws InterruptedException;
+    public abstract boolean createMapEntry(String k, String field, String value, long ttl) throws InterruptedException;
+    public abstract boolean createMapEntry(String k, String field, String value) throws InterruptedException;
+    public abstract boolean createDeque(String k, long ttl) throws InterruptedException;
+    public abstract boolean createDeque(String k) throws InterruptedException;
+    public abstract boolean createDequeItem(String k, String v, long ttl) throws InterruptedException;
+    public abstract boolean createDequeItem(String k, String v) throws InterruptedException;
+    public abstract boolean createSet(String k, long ttl) throws InterruptedException;
+    public abstract boolean createSet(String k) throws InterruptedException;
+    public abstract boolean createSetItem(String k, String v, long ttl) throws InterruptedException;
+    public abstract boolean createSetItem(String k, String v) throws InterruptedException;
+    public abstract boolean modifyString(String k, String v) throws InterruptedException;
+    public abstract boolean expire(String k, long ttl) throws InterruptedException;
+    public abstract boolean expire(String k) throws InterruptedException;
+    public abstract boolean removeMapEntry(String k, String field) throws InterruptedException;
+    public abstract boolean removeDequeItemAtFirstOccurrence(String k, String v) throws InterruptedException;
+    public abstract boolean removeSetItem(String k, String v) throws InterruptedException;
+    public abstract boolean removeKey(String k) throws InterruptedException;
+    public abstract boolean remove(String k) throws InterruptedException;
+    public abstract String getKeySet() throws InterruptedException;
+    public abstract String getKeyExpirationSet() throws InterruptedException;
+    public abstract String readKey(String k) throws InterruptedException;
+    public abstract String get(String k) throws InterruptedException;
+}
+
 ```
-Instructions:
+
+```
+Basic instructions:
 hire: hire a Postman from Posthouse
 fire: fire the Postman you hired in this session
 cst: create string
