@@ -19,10 +19,7 @@ import org.posthouse.resp.Response;
 import org.posthouse.util.Delimiter;
 
 import java.security.*;
-import java.util.Base64;
-import java.util.Deque;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @Author 吴子豪
@@ -76,7 +73,7 @@ public class SecurePostman implements Postman {
                             }
                             @Override
                             public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                                log.debug(cause.getStackTrace());
+                                log.error(cause.getLocalizedMessage());
                             }
                         });
                         pipeline.addLast(new ChannelOutboundHandlerAdapter(){
@@ -329,7 +326,7 @@ public class SecurePostman implements Postman {
         try {
             return createString(k, OBJECT_MAPPER.writeValueAsString(object), ttl);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getOriginalMessage());
             return false;
         }
     }
@@ -357,13 +354,23 @@ public class SecurePostman implements Postman {
     }
 
     @Override
+    public boolean updateObject(String key, Object object) throws InterruptedException {
+        try {
+            return updateString(key, OBJECT_MAPPER.writeValueAsString(object));
+        } catch (JsonProcessingException e) {
+            log.error(e.getOriginalMessage());
+            return false;
+        }
+    }
+
+    @Override
     public boolean updateMap(String key, Map map) throws InterruptedException {
         RESPONSE = null;
         String v;
         try {
             v = OBJECT_MAPPER.writeValueAsString(map);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getOriginalMessage());
             return false;
         }
         ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
@@ -381,13 +388,17 @@ public class SecurePostman implements Postman {
     }
 
     @Override
-    public boolean updateDeque(String key, Deque deque) throws InterruptedException {
+    public boolean updateDeque(String key, Deque<String> deque) throws InterruptedException {
+
+        LinkedList<String> toSend = new LinkedList<>();
+        for (String str : deque)
+            toSend.add(str);
         RESPONSE = null;
         String v;
         try {
-            v = OBJECT_MAPPER.writeValueAsString(deque);
+            v = OBJECT_MAPPER.writeValueAsString(toSend);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getOriginalMessage());
             return false;
         }
         ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
@@ -411,7 +422,7 @@ public class SecurePostman implements Postman {
         try {
             v = OBJECT_MAPPER.writeValueAsString(set);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getOriginalMessage());
             return false;
         }
         ChannelFuture future = BOOTSTRAP.connect(SERVER_HOST, SERVER_PORT).sync();
@@ -536,7 +547,7 @@ public class SecurePostman implements Postman {
         try {
             return OBJECT_MAPPER.readValue(RESPONSE.getValue(), Map.class);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getOriginalMessage());
             return null;
         }
     }
@@ -556,7 +567,7 @@ public class SecurePostman implements Postman {
         try {
             return OBJECT_MAPPER.readValue(RESPONSE.getValue(), Map.class);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getOriginalMessage());
             return null;
         }
     }
@@ -589,9 +600,9 @@ public class SecurePostman implements Postman {
     @SuppressWarnings("all")
     public Object getObject(String k, Class clazz) throws InterruptedException {
         try {
-            return OBJECT_MAPPER.readValue(readKey(k), clazz);
+            return OBJECT_MAPPER.readValue(get(k), clazz);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getOriginalMessage());
             return null;
         }
     }

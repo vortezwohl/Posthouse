@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，你会看到log4j2内部各种详细输出-->
+<!--monitorInterval：Log4j能够自动检测修改配置 文件和重新配置本身，设置间隔秒数-->
+<Configuration status="info" monitorInterval="60">
+    <!--日志级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+    <Properties>
+        <Property name="App">third-api</Property>
+        <Property name="logDir">/home/migu/portal-third-api/logs</Property>
+        <Property name="splitSize">100 MB</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- 输出控制台日志的配置 -->
+        <Console name="console" target="SYSTEM_OUT">
+            <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="ALL" onMatch="ACCEPT" onMismatch="DENY"/>
+            <!-- 输出日志的格式 -->
+            <!-- 格式化输出：%date表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度 %msg：日志消息，%n是换行符-->
+            <!-- %logger{36} 表示 Logger 名字最长36个字符 -->
+            <PatternLayout pattern="[%thread] %level %logger %d{yyyy-MM-dd HH:mm:ss.SSS} - %msg.%n"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <!-- root logger 配置,全局配置，默认所有的Logger都继承此配置 -->
+        <!-- AsyncRoot - 异步记录日志 - 需要LMAX Disruptor的支持 -->
+        <Root level="info">
+            <AppenderRef ref="console"/>
+        </Root>
+
+        <!--第三方的软件日志级别 -->
+        <logger name="io.netty" level="info" additivity="true"></logger>
+        <logger name="org.apache.logging.log4j" level="info" additivity="true"></logger>
+        <logger name="org.posthouse" level="info" additivity="true"></logger>
+    </Loggers>
+</Configuration>

@@ -59,11 +59,13 @@ public interface Postman extends Closeable {
 
     boolean updateString(String key, String value) throws InterruptedException;
 
-    boolean updateMap(String key, Map map) throws InterruptedException;
+    boolean updateObject(String key, Object object) throws InterruptedException;
 
-    boolean updateDeque(String key, Deque deque) throws InterruptedException;
+    boolean updateMap(String key, Map<String, String> map) throws InterruptedException;
 
-    boolean updateSet(String key, Set set) throws InterruptedException;
+    boolean updateDeque(String key, Deque<String> deque) throws InterruptedException;
+
+    boolean updateSet(String key, Set<String> set) throws InterruptedException;
 
     boolean expire(String key, long ttl) throws InterruptedException;
 

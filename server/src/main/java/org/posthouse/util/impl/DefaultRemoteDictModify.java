@@ -21,7 +21,7 @@ public class DefaultRemoteDictModify implements RemoteDictModify {
     }
 
     @Override
-    public boolean modifyMap(String key, Map map) {
+    public boolean modifyMap(String key, Map<String, String> map) {
         if (RemoteDictStore.exist(key)) {
             RemoteDictStore.hashMap.replace(key, map);
             return true;
@@ -30,7 +30,7 @@ public class DefaultRemoteDictModify implements RemoteDictModify {
     }
 
     @Override
-    public boolean modifyDeque(String key, Deque deque) {
+    public boolean modifyDeque(String key, Deque<String> deque) {
         if (RemoteDictStore.exist(key)) {
             RemoteDictStore.dequeMap.replace(key, deque);
             return true;
@@ -39,7 +39,7 @@ public class DefaultRemoteDictModify implements RemoteDictModify {
     }
 
     @Override
-    public boolean modifySet(String key, Set set) {
+    public boolean modifySet(String key, Set<String> set) {
         if (RemoteDictStore.exist(key)) {
             RemoteDictStore.setMap.replace(key, set);
             return true;

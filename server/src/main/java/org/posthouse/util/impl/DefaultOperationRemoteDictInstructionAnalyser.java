@@ -151,9 +151,6 @@ public class DefaultOperationRemoteDictInstructionAnalyser implements RemoteDict
                 else
                     resp = RemoteDictStore.removeExpKey(instructionTokens[3]);
                 break;
-            default:
-                resp = false;
-                break;
 
             // delete
             case "DHAI":
@@ -173,9 +170,15 @@ public class DefaultOperationRemoteDictInstructionAnalyser implements RemoteDict
                 // remove set item
                 // timestamp ttl(s) RSEI k value
                 resp = remoteDictRemove.removeSetItem(instructionTokens[3], instructionTokens[4]);
+                break;
             case "DK":
             case "dk":
                 resp = remoteDictRemove.removeKey(instructionTokens[3]);
+                break;
+
+            default:
+                resp = false;
+                break;
         }
         return resp;
     }
